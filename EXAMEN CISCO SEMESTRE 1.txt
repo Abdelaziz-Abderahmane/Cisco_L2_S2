@@ -1,0 +1,130 @@
+==CONFIGURATION DE BASE
+enable 
+conf t
+enable secret cisco
+line vty 0 15
+password cisco
+login
+line console 0
+password cisco
+login
+banner motd @ L2 ISM @
+hostname HQ
+
+
+==CONFIGURATION DES ADRESSES
+
+==SUR HQ
+hostname HQ
+interface G0/0
+no ip add 
+no shut
+interface G0/1
+ip add 10.0.0.1 255.255.255.252
+no shut
+interface G0/2
+ip add 209.165.200.1 255.255.255.252
+no shut
+
+==SUR R2
+interface G0/2
+ip add 209.165.200.2 255.255.255.252
+no shut
+interface G0/0
+no ip add
+no shut 
+
+==CONFIGURATION INTERVLANS SWITCH ET ROUTEUR 
+==SUR SWA1
+interface G0/1
+switchport mode trunk
+interface F0/1
+switchport mode access
+switchport access vlan 2
+interface F0/2
+switchport mode access
+switchport access vlan 3
+interface F0/3
+switchport mode access
+switchport access vlan 4
+interface F0/4
+switchport mode access
+switchport access vlan 5
+
+==SUR SWA2
+interface G0/1
+switchport mode trunk
+interface F0/1
+switchport mode access
+switchport access vlan 2
+interface F0/2
+switchport mode access
+switchport access vlan 3
+
+==SUR HQ 
+interface G0/0.2
+encapsulation DOT1Q 2
+ip add 172.16.2.1 255.255.255.0
+no shut 
+
+interface G0/0.3
+encapsulation D0T1Q 3
+ip add 172.16.3.1 255.255.255.0
+no shut
+
+interface G0/0.4
+encapsulation DOT1Q 4
+ip add 172.16.4.1 255.255.255.0
+no shut 
+
+interface G0/0.5
+encapsulation DOT1Q 5
+ip add 172.16.5.1 255.255.255.0
+no shut
+
+==SUR R2
+interface G0/0.2
+encapsulation DOT1Q 2
+ip add 192.168.2.1 255.255.255.0
+no shut
+
+interface G0/0.3
+encapsulation DOT1Q 3
+ip add 192.168.3.1 255.255.255.0
+no shut
+
+
+== ROUTAGE DYNAMIQUE
+==SUR HQ
+router rip
+version 2
+no auto-summary
+network 10.0.0.0
+network 209.165.200.0
+network 172.16.2.0
+network 172.16.3.0
+network 172.16.4.0
+network 172.16.5.0
+
+==SUR R2
+router rip 
+version 2
+no auto-summary
+network 209.165.200.0
+network 198.168.2.0
+network 192.168.3.0
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+

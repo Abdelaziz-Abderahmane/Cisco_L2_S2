@@ -1,0 +1,148 @@
+==CONFIGURATION DES ADRESSES
+==SUR CORE
+
+hostname CORE
+int G0/0
+ip add 192.168.100.9 255.255.255.252
+no shut
+int G0/1
+ip add 192.168.100.1 255.255.255.252
+no shut
+int G0/2
+ip add 192.168.100.5 255.255.255.252
+no shut
+
+router rip
+default-information originate
+redistribute connected
+==SUR FEDE 1
+hostname FEDE 1
+vlan 20
+vlan 30
+int vlan 20
+ip add 192.168.20.1 255.255.255.0
+int vlan 30
+ip add 192.168.30.1 255.255.255.0
+int G0/1
+no switchport 
+ip add 192.168.100.2 255.255.255.252
+no shut
+
+==SUR FEDE 2
+hostname FEDE 2
+vlan 20
+vlan 30
+int vlan 20
+ip add 192.168.20.2 255.255.255.0
+int vlan 30
+ip add 192.168.30.2 255.255.255.0
+int G0/1
+no switchport 
+ip add 192.168.100.6 255.255.255.252
+no shut
+
+==SUR SWA1
+hostname SWA1
+interface r f0/1-4
+switchport mode trunk
+interface f0/10
+switchport mode access
+switchport access vlan 20
+interface f0/11
+switchport mode access
+switchport access vlan 30
+
+==SUR SWA2
+hostname SWA2
+interface r f0/1-4
+switchport mode trunk
+interface f0/10
+switchport mode access
+switchport access vlan 20
+interface f0/11
+switchport mode access
+switchport access vlan 30
+
+==ROUTAGE DYNAMIQUE
+==SUR CORE
+router rip 
+version 2
+no auto-summary
+network 192.168.100.0
+network 192.168.100.4
+network 192.168.100.8
+
+==SUR FEDE 1
+ip routing
+router rip
+version 2
+no auto-summary
+network 192.168.100.0
+network 192.168.20.0
+network 192.168.30.0
+
+==SUR FEDE 2
+ip routing
+router rip
+version 2
+no auto-summary
+network 192.168.100.4
+network 192.168.20.0
+network 192.168.30.0
+
+==CONFIGURATION DU DHCP SUR FEDE 1 POUR VLAN 20 ET 30
+==EXCLURE LES ADD IP
+
+ip dhcp excluded-address 192.168.20.1 192.168.20.10
+ip dhcp excluded-address 192.168.30.1 192.168.30.10
+
+==CREATION DE POOL POOUR LE VLAN 20
+ip dhcp pool vlan20
+network 192.168.20.0 255.255.255.0
+default-router 192.168.20.1
+dns-server 8.8.8.8 
+
+==CREATION DE POOL POOUR LE VLAN 30
+ip dhcp pool vlan30
+network 192.168.30.0 255.255.255.0
+default-router 192.168.30.1
+dns-server 8.8.8.8 
+
+==CONFIGURATION DE HRSP(STANDBY/PACERELLES VIRTUELLES)
+
+==FEDE 1 (vlan 20 actif , vlan 30 passif)
+int vlan 20
+standby 20 ip 192.168.20.3
+standby 20 priority 150
+standby 20 preempt
+
+int vlan 30 
+standby 30 ip 192.168.30.3
+
+==FEDE 2 (vlan 30 actif , vlan 20 passif)
+int vlan 30
+standby 30 ip 192.168.30.3
+standby 30 priority 150
+standby 30 preempt
+
+int vlan 20 
+standby 20 ip 192.168.30.3
+
+
+==CONFIGURATION DES SPANNING POUR EQUILIBRER LA CONNEXION(SPANNING)
+==FEDE 1
+SPANNING-TREE VLAN 20 ROOT PRIMARY
+SPANNING-TREE VLAN 30 ROOT SECONDARY
+
+==FEDE 2
+SPANNING-TREE VLAN 30 ROOT PRIMARY
+SPANNING-TREE VLAN 20 ROOT SECONDARY
+
+
+
+
+
+
+
+
+

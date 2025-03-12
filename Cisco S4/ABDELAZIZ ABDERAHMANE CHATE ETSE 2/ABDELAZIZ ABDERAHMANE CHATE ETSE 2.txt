@@ -1,0 +1,226 @@
+==CONFIGURATION DES VLANS SUR LES FEDE ET SWITCH
+
+vlan 2
+name RH
+vlan 3
+name MKT
+vlan 4
+name SALES
+vlan 5
+name IT
+
+==CONFIGURATION DES ADRESSES
+==SUR CORE
+hostname CORE
+interface G0/0
+ip add 172.16.6.9 255.255.255.252
+no shut
+
+interface G0/1
+ip add 172.16.6.2 255.255.255.252
+no shut
+
+interface G0/2
+ip add 172.16.6.6 255.255.255.252
+no shut
+
+interface S0/0/0
+ip add 209.165.200.1 255.255.255.252
+no shut
+
+==SUR R2
+hostname R2
+interface G0/0
+ip add 64.100.0.1 255.255.255.252
+no shut
+
+interface S0/0/0
+ip add 209.165.200.2 255.255.255.252
+no shut
+
+
+==SUR FEDE 1
+
+hostname FEDE 1
+interface vlan 2
+ip add 172.16.2.1 255.255.255.0
+
+interface vlan 3
+ip add 172.16.3.1 255.255.255.0
+
+interface vlan 4
+ip add 172.16.4.1 255.255.255.0
+
+interface vlan 5
+ip add 172.16.5.1 255.255.255.0
+
+interface G0/1
+no switchport 
+ip add 172.16.6.1 255.255.255.252
+no shut
+
+==SUR FEDE 2
+
+hostname FEDE 2
+interface vlan 2
+ip add 172.16.2.2 255.255.255.0
+
+interface vlan 3
+ip add 172.16.3.2 255.255.255.0
+
+interface vlan 4
+ip add 172.16.4.2 255.255.255.0
+
+interface vlan 5
+ip add 172.16.5.2 255.255.255.0
+
+interface G0/1
+no switchport 
+ip add 172.16.6.5 255.255.255.252
+no shut
+
+
+==CONFIGURATION DU MODE TRUNK ET LES INTERFACES DES SWITCH
+==SUR SWA1 ET SWA 2
+
+interface range f0/1-4
+switchport mode trunk
+interface f0/5
+switchport mode access
+switchport access vlan 2
+interface f0/6
+switchport mode access
+switchport access vlan 3
+interface f0/7
+switchport mode access
+switchport access vlan 4
+interface f0/8
+switchport mode access
+switchport access vlan 5
+hostname SWA1
+
+== ROUTAGE DYNAMIQUE 
+==SUR CORE
+ip route 0.0.0.0 0.0.0.0 S0/0/0
+
+router rip
+version 2
+no auto-summary
+network 172.16.6.8
+network 172.16.6.0
+network 172.16.6.4
+network 209.165.200.0
+
+router rip
+default-information originate
+redistribute connected
+
+==SUR R2
+ip route 0.0.0.0 0.0.0.0 S0/0/0
+
+==SUR FEDE 1
+ip route 0.0.0.0 0.0.0.0 G0/1
+ip routing
+router rip
+version 2
+no auto-summary
+network 172.16.6.0
+network 172.16.2.0
+network 172.16.3.0
+network 172.16.4.0
+network 172.16.5.0
+
+==SUR FEDE 2
+ip route 0.0.0.0 0.0.0.0 G0/2
+ip routing
+router rip
+version 2
+no auto-summary
+network 172.16.6.4
+network 172.16.2.0
+network 172.16.3.0
+network 172.16.4.0
+network 172.16.5.0
+
+==CONFIGURATION DU DHCP SUR FEDE 1 
+==EXCLURE LES ADD IP
+
+ip dhcp excluded-address 172.16.2.1 172.16.2.10
+ip dhcp excluded-address 172.16.3.1 172.16.3.10
+ip dhcp excluded-address 172.16.4.1 172.16.4.10
+ip dhcp excluded-address 172.16.5.1 172.16.5.10
+
+==CREATION DE POOL POUR LE VLAN RH
+ip dhcp pool RH
+network 172.16.2.0 255.255.255.0
+default-router 172.16.2.1
+dns-server 8.8.8.8
+
+==CREATION DE POOL POUR LE VLAN MKT
+ip dhcp pool MKT
+network 172.16.3.0 255.255.255.0
+default-router 172.16.3.1
+dns-server 8.8.8.8
+
+==CREATION DE POOL POUR LE VLAN SALES
+ip dhcp pool SALES
+network 172.16.4.0 255.255.255.0
+default-router 172.16.4.1
+dns-server 8.8.8.8
+
+==CREATION DE POOL POUR LE VLAN IT
+ip dhcp pool IT
+network 172.16.5.0 255.255.255.0
+default-router 172.16.5.1
+dns-server 8.8.8.8
+
+==CONFIGURATION DE HRSP (PACERELLES VIRTUELLES)
+== SUR FEDE 1 (VLAN 2 ET 3 EN ACTIFS ET 4,5 EN PASSIFS)
+interface vlan 2
+standby 2 ip 172.16.2.3
+standby 2 priority 150
+standby 2 preempt
+
+interface vlan 3
+standby 3 ip 172.16.3.3
+standby 3 priority 150
+standby 3 preempt
+
+interface vlan 4
+standby 4 ip 172.16.4.3
+
+interface vlan 5
+standby 5 ip 172.16.5.3
+
+==SUR FEDE 2 (VLAN 4,5 EN ACTFS ET 2,3 EN PASSIFS)
+interface vlan 2
+standby 2 ip 172.16.2.3
+
+interface vlan 3
+standby 3 ip 172.16.3.3
+
+interface vlan 4
+standby 4 ip 172.16.4.3
+standby 4 priority 150
+standby 4 preempt
+
+interface vlan 5
+standby 5 ip 172.16.5.3
+standby 5 priority 150
+standby 5 preempt
+
+==== CONFIGURATION DES SPANNING SUR LES FEDE : EQUILIBRER LA CONNEXION
+==SUR FEDE 1
+spanning-tree vlan 2,3 root primary
+spanning-tree vlan 4,5 root secondary
+==SUR FEDE 2
+spanning-tree vlan 4,5 root primary
+spanning-tree vlan 1,2 root secondary
+
+
+
+
+
+
+
+
